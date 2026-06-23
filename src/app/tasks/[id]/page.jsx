@@ -14,15 +14,16 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
   
+  // 🎯 স্টেট প্রপার্টির নামগুলো অফিশিয়াল স্কিমার সাথে সিঙ্ক করা হলো
   const [bidForm, setBidForm] = useState({
-    bidAmount: "",
-    duration: "",
-    coverLetter: "",
+    proposed_budget: "",
+    estimated_days: "",
+    cover_note: "",
   });
   const [message, setMessage] = useState({ type: "", text: "" });
 
   useEffect(() => {
-    // লোকাল স্টোরেজ থেকে কারেন্ট ইউজার নেওয়া
+    // লোকাল স্টোরেজ থেকে কারেন্ট ইউজার নেওয়া
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
@@ -57,18 +58,28 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
     setSubmitLoading(true);
     setMessage({ type: "", text: "" });
 
+    // 🎯 ডাটা টাইপ কনভার্সন এবং প্রপার্টি নেমিং ফিক্স (Section 13)
+    const proposalPayload = {
+      task_id: taskId, 
+      proposed_budget: parseFloat(bidForm.proposed_budget) || 0,
+      estimated_days: parseInt(bidForm.estimated_days) || 0,
+      cover_note: bidForm.cover_note ? bidForm.cover_note.trim() : "",
+    };
+
+    // ডিফেন্সিভ ভ্যালিডেশন
+    if (!proposalPayload.task_id || !proposalPayload.proposed_budget || !proposalPayload.estimated_days || !proposalPayload.cover_note) {
+      setMessage({ type: "error", text: "Please fill up all fields properly." });
+      setSubmitLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("http://localhost:5000/api/proposals", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          taskId,
-          bidAmount: bidForm.bidAmount,
-          duration: bidForm.duration,
-          coverLetter: bidForm.coverLetter,
-        }),
+        body: JSON.stringify(proposalPayload), // সঠিক ডক কমপ্লায়েন্ট পেলোড পাঠানো হচ্ছে
         credentials: "include",
       });
 
@@ -79,14 +90,14 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
       }
 
       setMessage({ type: "success", text: "Your proposal has been submitted successfully!" });
-      setBidForm({ bidAmount: "", duration: "", coverLetter: "" });
+      setBidForm({ proposed_budget: "", estimated_days: "", cover_note: "" });
       
-      // টাস্ক কাউন্ট লোকালি আপডেট করে দেওয়া
+      // টাস্ক কাউন্ট লোকালি আপডেট করে দেওয়া
       setTask((prev) => ({ ...prev, proposalsCount: (prev.proposalsCount || 0) + 1 }));
 
     } catch (err) {
       setMessage({ type: "error", text: err.message });
-    } finally {
+    } finally { // <-- টাইপো ফিক্স করা হয়েছে (finally)
       setSubmitLoading(false);
     }
   };
@@ -136,13 +147,11 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
             </div>
 
             <div className="space-y-3 pt-4">
-              <h3 className="text-lg font-semibold text-white">Required Skills</h3>
+              <h3 className="text-lg font-semibold text-white">Category</h3>
               <div className="flex flex-wrap gap-2">
-                {task.tags?.map((tag, i) => (
-                  <span key={i} className="bg-white/5 border border-white/10 text-gray-300 text-sm px-3 py-1 rounded-xl">
-                    {tag}
-                  </span>
-                ))}
+                <span className="bg-white/5 border border-white/10 text-emerald-400 text-sm px-3 py-1 rounded-xl font-medium">
+                  {task.category || "Development"}
+                </span>
               </div>
             </div>
           </div>
@@ -164,7 +173,7 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
             </div>
           </div>
 
-          {/* বিডিং বা প্রোেপোজাল ফর্ম কার্ড */}
+          {/* বিডিং বা প্রোপোজাল ফর্ম কার্ড */}
           <div className="bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-xl space-y-4">
             <h2 className="text-xl font-bold text-white border-b border-white/10 pb-2">Submit Your Proposal</h2>
             
@@ -194,10 +203,10 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
                   <label className="block text-sm font-medium mb-1 text-gray-300">Your Bid Amount ($)</label>
                   <input
                     type="number"
-                    name="bidAmount"
+                    name="proposed_budget" // 🎯 নাম আপডেট করা হয়েছে
                     required
                     min="1"
-                    value={bidForm.bidAmount}
+                    value={bidForm.proposed_budget}
                     onChange={handleInputChange}
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition"
                     placeholder={`Max $${task.budget}`}
@@ -208,10 +217,10 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
                   <label className="block text-sm font-medium mb-1 text-gray-300">Delivery Duration (Days)</label>
                   <input
                     type="number"
-                    name="duration"
+                    name="estimated_days" // 🎯 নাম আপডেট করা হয়েছে
                     required
                     min="1"
-                    value={bidForm.duration}
+                    value={bidForm.estimated_days}
                     onChange={handleInputChange}
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition"
                     placeholder="e.g., 5"
@@ -219,12 +228,12 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Cover Letter</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-300">Cover Note Message</label>
                   <textarea
-                    name="coverLetter"
+                    name="cover_note" // 🎯 নাম আপডেট করা হয়েছে
                     required
                     rows="5"
-                    value={bidForm.coverLetter}
+                    value={bidForm.cover_note}
                     onChange={handleInputChange}
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition resize-none text-sm"
                     placeholder="Explain why you are the perfect fit for this task..."

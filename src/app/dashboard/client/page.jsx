@@ -7,7 +7,16 @@ export default function ClientDashboard() {
   const [user, setUser] = useState(null);
   const [proposals, setProposals] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ title: "", description: "", budget: "", deadline: "", tags: "" });
+  
+  // 🎯 ক্যাটাগরিতে ডিফল্ট ভ্যালু ডেভেলপমেন্ট সেট করা হলো যেন ডাটা মিসিং না হয়
+  const [formData, setFormData] = useState({ 
+    title: "", 
+    category: "Development", 
+    description: "", 
+    budget: "", 
+    deadline: "" 
+  });
+  
   const [loading, setLoading] = useState(false);
   const [proposalsLoading, setProposalsLoading] = useState(true);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -26,7 +35,6 @@ export default function ClientDashboard() {
         credentials: "include"
       });
       const data = await response.json();
-      // ডাটা যদি অ্যারে ফরমেটে আসে তবেই সেভ করবে (ক্র্যাশ প্রোটেকশন)
       if (response.ok && data && Array.isArray(data.data)) {
         setProposals(data.data);
       } else {
@@ -48,24 +56,47 @@ export default function ClientDashboard() {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: "", text: "" });
-    const tagsArray = formData.tags ? formData.tags.split(",").map((tag) => tag.trim()) : [];
+
+    // ডক ভ্যালিডেশন অনুযায়ী ক্লিন পেলোড তৈরি
+    const taskPayload = {
+      title: formData.title ? formData.title.trim() : "",
+      category: formData.category || "Development", 
+      description: formData.description ? formData.description.trim() : "",
+      budget: parseFloat(formData.budget) || 0, 
+      deadline: formData.deadline || "",
+    };
+
+    if (!taskPayload.title || !taskPayload.description || !taskPayload.budget || !taskPayload.deadline) {
+      setMessage({ type: "error", text: "Please fill up all required fields properly." });
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch("http://localhost:5000/api/tasks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, budget: formData.budget, tags: tagsArray }),
+        headers: { 
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify(taskPayload),
         credentials: "include",
       });
 
-      if (!response.ok) throw new Error("Failed to post task.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to post task.");
+      }
 
       setMessage({ type: "success", text: "Task posted successfully!" });
-      setFormData({ title: "", description: "", budget: "", deadline: "", tags: "" });
+      setFormData({ title: "", category: "Development", description: "", budget: "", deadline: "" });
+      
       setTimeout(() => {
         setIsModalOpen(false);
         setMessage({ type: "", text: "" });
+        window.location.reload(); 
       }, 1500);
+
     } catch (err) {
       setMessage({ type: "error", text: err.message });
     } finally {
@@ -93,9 +124,8 @@ export default function ClientDashboard() {
     }
   };
 
-  // Safe Mapping কাউন্ট (প্রোপোজাল অ্যারে খালি থাকলেও ক্র্যাশ করবে না)
   const safeProposals = Array.isArray(proposals) ? proposals : [];
-  const uniqueTaskCount = new Set(safeProposals.map(p => p?.taskId).filter(Boolean)).size;
+  const uniqueTaskCount = new Set(safeProposals.map(p => p?.task_id).filter(Boolean)).size;
   const activeProjectsCount = safeProposals.filter(p => p?.status === "accepted").length;
 
   return (
@@ -113,7 +143,7 @@ export default function ClientDashboard() {
           </Button>
         </div>
 
-        {/* অ্যানালিটিক্স গ্রিড */}
+        {/* Analytics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
             <h3 className="text-gray-400 text-sm font-medium">Tasks with Bids</h3>
@@ -129,7 +159,7 @@ export default function ClientDashboard() {
           </div>
         </div>
 
-        {/* پروپোজাল লিস্ট সেকশন */}
+        {/* Proposal List Section */}
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-white">Received Bids & Proposals</h2>
           
@@ -154,14 +184,16 @@ export default function ClientDashboard() {
                         {proposal?.status || "pending"}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-400">From: <span className="text-white font-medium">{proposal?.freelancer?.email || "Freelancer"}</span></p>
-                    <p className="text-gray-300 text-sm leading-relaxed border-l-2 border-white/10 pl-3 italic">"{proposal?.coverLetter || ""}"</p>
+                    {/* 🎯 ডক রিকোয়ারমেন্ট অনুযায়ী অবজেক্ট ম্যাপিং ফিক্স */}
+                    <p className="text-sm text-gray-400">From: <span className="text-white font-medium">{proposal?.freelancer_email || "Freelancer"}</span></p>
+                    <p className="text-gray-300 text-sm leading-relaxed border-l-2 border-white/10 pl-3 italic">"{proposal?.cover_note || ""}"</p>
                   </div>
 
                   <div className="flex md:flex-col justify-between w-full md:w-auto items-center md:items-end gap-4 border-t md:border-t-0 pt-4 md:pt-0 border-white/10">
                     <div className="text-left md:text-right">
                       <p className="text-xs text-gray-500 uppercase">Offer / Duration</p>
-                      <p className="text-lg font-bold text-white">${proposal?.bidAmount || 0} <span className="text-xs text-gray-400 font-normal">in {proposal?.duration || 0} days</span></p>
+                      {/* 🎯 ডক রিকোয়ারমেন্ট অনুযায়ী অবজেক্ট ম্যাপিং ফিক্স */}
+                      <p className="text-lg font-bold text-white">${proposal?.proposed_budget || 0} <span className="text-xs text-gray-400 font-normal">in {proposal?.estimated_days || 0} days</span></p>
                     </div>
                     {proposal?.status !== "accepted" && (
                       <Button onClick={() => handleAcceptProposal(proposal?._id)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold radius-lg text-sm px-4 py-2">
@@ -189,6 +221,22 @@ export default function ClientDashboard() {
                   <label className="block text-sm font-medium mb-1 text-gray-300">Task Title</label>
                   <input type="text" name="title" required value={formData.title} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition" placeholder="Build a Next.js App" />
                 </div>
+                {/* 🎯 CHALLENGE 1: ক্যাটাগরি ড্রপডাউন ইনপুট বক্স যোগ করা হলো */}
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-300">Category</label>
+                  <select 
+                    name="category" 
+                    value={formData.category} 
+                    onChange={handleChange} 
+                    className="w-full bg-[#0B0B0F] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+                  >
+                    <option value="Development">Development</option>
+                    <option value="Design">Design</option>
+                    <option value="Writing">Writing</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-300">Description</label>
                   <textarea name="description" required rows="4" value={formData.description} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition resize-none" placeholder="Requirements..." />
@@ -202,10 +250,6 @@ export default function ClientDashboard() {
                     <label className="block text-sm font-medium mb-1 text-gray-300">Deadline</label>
                     <input type="date" name="deadline" required value={formData.deadline} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition color-scheme-dark" />
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Required Skills</label>
-                  <input type="text" name="tags" value={formData.tags} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition" placeholder="React, MongoDB" />
                 </div>
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <Button type="button" onClick={() => setIsModalOpen(false)} className="bg-neutral-800 hover:bg-neutral-700 text-white font-medium radius-lg">Cancel</Button>
