@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@heroui/react";
+import toast from "react-hot-toast";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -46,12 +47,12 @@ export default function Navbar() {
       if (response.ok) {
         localStorage.removeItem("user");
         setUser(null);
-        alert("Logged out successfully!");
+        toast.success("Logged out successfully!");
         
-        // 🎯 রিডাইরেক্ট করার পর পেজটি যেন ক্লিন স্টেটে লোড হয়
+        // 🎯 রিডাইরেক্ট করার পর পেজটি যেন ক্লিন স্টেটে লোড হয়
         window.location.href = "/auth/signin"; 
       } else {
-        alert("Logout failed. Please try again.");
+        toast.error("Logout failed. Please try again.");
       }
     } catch (error) {
       console.error("Logout failed:", error);

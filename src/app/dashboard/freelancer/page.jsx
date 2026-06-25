@@ -8,6 +8,7 @@ import OverviewTab from "./OverviewTab";
 import BrowseTab from "./BrowseTab";
 import ProposalsTab from "./ProposalsTab";
 import ActiveTab from "./ActiveTab";
+import toast from "react-hot-toast";
 
 function FreelancerDashboardContent() {
   const router = useRouter();
@@ -108,7 +109,7 @@ function FreelancerDashboardContent() {
       });
 
       if (response.ok) {
-        alert("Deliverable Matrix Registered. Project Status Updated to Completed.");
+        toast.success("Deliverable Matrix Registered. Project Status Updated to Completed.");
         setDeliverableUrl("");
         setActiveDeliverableTask(null);
         fetchFreelancerWorkspace(user.email);
@@ -142,10 +143,10 @@ function FreelancerDashboardContent() {
 
       if (response.ok && resData.success) {
         localStorage.setItem("user", JSON.stringify({ ...user, ...resData.user }));
-        alert("Public Contractor details updated successfully inside clusters.");
+        toast.success("Public Contractor details updated successfully inside clusters.");
         window.location.reload();
       } else {
-        alert(resData.message || "Profile update failed.");
+        toast.error(resData.message || "Profile update failed.");
       }
     } catch (err) {
       console.error("Profile mutation failure:", err);

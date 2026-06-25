@@ -6,6 +6,7 @@ import { Button } from "@heroui/react";
 
 import TaskPostForm from "./TaskPostForm";
 import ProposalsTable from "./ProposalsTable";
+import toast from "react-hot-toast";
 
 function ClientDashboardContent() {
   const searchParams = useSearchParams();
@@ -59,7 +60,7 @@ function ClientDashboardContent() {
   const handlePostTask = async (e) => {
     e.preventDefault();
     if (!taskTitle.trim() || !budget || !deadline || !taskCategory) {
-      alert("Please fill in all mandatory fields.");
+      toast.error("Please fill in all mandatory fields.");
       return;
     }
 
@@ -67,7 +68,7 @@ function ClientDashboardContent() {
     const parsedDeadline = parseInt(deadline);
 
     if (isNaN(parsedBudget) || isNaN(parsedDeadline)) {
-      alert("Please enter valid numbers for Budget and Deadline.");
+      toast.error("Please enter valid numbers for Budget and Deadline.");
       return;
     }
 
@@ -89,7 +90,7 @@ function ClientDashboardContent() {
       });
 
       if (response.ok) {
-        alert("Task Vector Deployed Successfully!");
+        toast.success("Task Vector Deployed Successfully!");
         setTaskTitle("");
         setTaskCategory("Development");
         setBudget("");
@@ -98,7 +99,7 @@ function ClientDashboardContent() {
         router.push("/dashboard/client");
       } else {
         const errData = await response.json();
-        alert(errData.message || "Failed to post task.");
+        toast.error(errData.message || "Failed to post task.");
       }
     } catch (err) {
       console.error("Task submission crash:", err);
@@ -113,7 +114,7 @@ function ClientDashboardContent() {
       const finalTitle = proposal?.taskTitle || "SkillSwap Project Milestone";
 
       if (!finalAmount || finalAmount <= 0) {
-        alert("Error: Invalid budget detected for checkout.");
+        toast.error("Error: Invalid budget detected for checkout.");
         return;
       }
 
@@ -133,7 +134,7 @@ function ClientDashboardContent() {
         localStorage.setItem("escrow_payment_pending", JSON.stringify(proposal));
         window.location.href = data.url;
       } else {
-        alert(data.message || "Stripe initialization failed.");
+        toast.error(data.message || "Stripe initialization failed.");
       }
     } catch (err) {
       console.error("Payment routing crash:", err);
@@ -143,7 +144,7 @@ function ClientDashboardContent() {
   // 🎯 ফিক্সড হ্যান্ডলার: আনডিফাইন্ড ভ্যারিয়েবল ক্র্যাশ সেফ করা হয়েছে
   const handleGiveRating = async (freelancerEmail, ratingValue) => {
     if (!freelancerEmail) {
-      alert("❌ Error: Freelancer email node identifier is missing.");
+      toast.error("❌ Error: Freelancer email node identifier is missing.");
       return;
     }
 
@@ -165,14 +166,14 @@ function ClientDashboardContent() {
       const resData = await response.json();
 
       if (response.ok && resData.success) {
-        alert("⭐ Review Node Deployed into Separate Collection Successfully!");
+        toast.success("⭐ Review Node Deployed into Separate Collection Successfully!");
         fetchClientProposals(); // ড্যাশবোর্ড ডাটা রিফ্রেশ
       } else {
-        alert(`❌ REJECT: ${resData.message || "Failed to secure rating node."}`);
+        toast.error(`❌ REJECT: ${resData.message || "Failed to secure rating node."}`);
       }
     } catch (err) {
       console.error("Rating Submission Error:", err);
-      alert("Network error: Cannot reach separate collection server.");
+      toast.error("Network error: Cannot reach separate collection server.");
     }
   };
 

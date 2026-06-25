@@ -181,7 +181,7 @@ export default function BrowseFreelancers() {
               <button 
                 type="button"
                 className="w-full mt-6 bg-white/5 hover:bg-emerald-600 border border-white/10 hover:border-emerald-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-md text-sm"
-                onClick={() => alert(`Viewing profile of ${freelancer.name}`)}
+                onClick={() => toast.success(`Viewing profile of ${freelancer.name}`)}
               >
                 View Public Profile
               </button>

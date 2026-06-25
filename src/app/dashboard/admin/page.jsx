@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { Button } from "@heroui/react";
+import toast from "react-hot-toast";
 
 function AdminDashboardContent() {
   const [user, setUser] = useState(null);
@@ -21,7 +22,7 @@ function AdminDashboardContent() {
       const isUserAdmin = parsedUser.role?.toLowerCase() === "admin" || parsedUser.email === "admin@gmail.com";
       
       if (!isUserAdmin) {
-        alert("❌ Access Denied: Supreme Admin Node Clearance Required!");
+        toast.error("❌ Access Denied: Supreme Admin Node Clearance Required!");
         window.location.href = "/";
         return;
       }
@@ -80,7 +81,7 @@ function AdminDashboardContent() {
         body: JSON.stringify({ blockStatus: !currentStatus })
       });
       if (response.ok) {
-        alert(`User status altered successfully!`);
+        toast.success(`User status altered successfully!`);
         loadAdminData(); // রিফ্রেশ ডেটা
       }
     } catch (err) {
@@ -96,7 +97,7 @@ function AdminDashboardContent() {
         method: "DELETE"
       });
       if (response.ok) {
-        alert("Task row purged successfully.");
+        toast.success("Task row purged successfully.");
         loadAdminData();
       }
     } catch (err) {

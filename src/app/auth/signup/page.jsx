@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@heroui/react";
+import { toast } from "react-hot-toast";
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -33,21 +34,27 @@ export default function SignUpPage() {
     const { name, email, image, password, role } = formData;
 
     // পাসওয়ার্ড ভ্যালিডেশন পলিসি চেক (Section 06)
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      setLoading(false);
-      return;
-    }
-    if (!/[A-Z]/.test(password)) {
-      setError("Password must contain at least one capital letter.");
-      setLoading(false);
-      return;
-    }
-    if (!/[a-z]/.test(password)) {
-      setError("Password must contain at least one lowercase letter.");
-      setLoading(false);
-      return;
-    }
+    if (!password) {
+  setError("Password cannot be empty.");
+  toast.error("Password cannot be empty!");
+  setLoading(false);
+  return;
+}
+    // if (password.length < 6) {
+    //   setError("Password must be at least 6 characters long.");
+    //   setLoading(false);
+    //   return;
+    // }
+    // if (!/[A-Z]/.test(password)) {
+    //   setError("Password must contain at least one capital letter.");
+    //   setLoading(false);
+    //   return;
+    // }
+    // if (!/[a-z]/.test(password)) {
+    //   setError("Password must contain at least one lowercase letter.");
+    //   setLoading(false);
+    //   return;
+    // }
 
     try {
       // ডাটাবেজে ডাটা পাঠানোর জন্য ব্যাকএন্ডের সঠিক ৫০0০ পোর্টে এপিআই কল
@@ -71,7 +78,7 @@ export default function SignUpPage() {
         throw new Error(data.message || "Registration failed!");
       }
 
-      alert("Registration Successful! Now please sign in.");
+      toast.success("Registration Successful! Now please sign in.");
       
       // সাকসেসফুল হলে নতুন তৈরি করা সাইন-ইন পাথে রিডাইরেক্ট
       window.location.href = "/auth/signin";

@@ -6,6 +6,9 @@ import { Button } from "@heroui/react";
 // 🚀 ১. Better-Auth ক্লায়েন্ট ইম্পোর্ট করা (তোমার প্রজেক্টের সঠিক পাথ অনুযায়ী মিলিয়ে নিও ভাই)
 import { authClient } from "@/lib/auth-client"; 
 
+import { toast } from "react-hot-toast";
+
+
 export default function SignInPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -42,7 +45,9 @@ export default function SignInPage() {
       localStorage.removeItem("user");
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      alert("Login Successful!");
+      // alert("Login Successful!");
+
+toast.success("Login Successful! Welcome back.");
 
       const userRole = data.user?.role?.toLowerCase();
 

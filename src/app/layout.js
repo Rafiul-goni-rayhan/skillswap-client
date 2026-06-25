@@ -5,6 +5,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar"; 
 import Footer from "@/components/Footer"; 
 import { usePathname } from "next/navigation";
+import { Toaster } from "react-hot-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +27,16 @@ export default function RootLayout({ children }) {
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-[#0B0B0F] text-white`}>
         
         {!isDashboard && <Navbar />}
-
+<Toaster 
+          position="top-right" 
+          toastOptions={{
+            style: {
+              background: '#18181b',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+            },
+          }} 
+        />
         <main>{children}</main>
 
         {!isDashboard && <Footer />}

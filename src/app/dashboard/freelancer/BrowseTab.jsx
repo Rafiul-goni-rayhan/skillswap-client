@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, Card } from "@heroui/react";
+import toast from "react-hot-toast";
 
 export default function BrowseTab({ tasks, myProposals, user, fetchFreelancerWorkspace, setActiveTab }) {
   const [selectedTask, setSelectedTask] = useState(null);
@@ -18,13 +19,13 @@ export default function BrowseTab({ tasks, myProposals, user, fetchFreelancerWor
     const finalNote = coverNote ? coverNote.trim() : "";
 
     if (!finalBudget || !finalDays || !finalNote) {
-      alert("Please fill in all the required bid fields.");
+      toast.error("Please fill in all the required bid fields.");
       return;
     }
 
     const alreadyApplied = myProposals.some((p) => p.task_id === selectedTask._id);
     if (alreadyApplied) {
-      alert("Security Block: You have already submitted a proposal application for this task card.");
+      toast.error("Security Block: You have already submitted a proposal application for this task card.");
       return;
     }
 
@@ -48,7 +49,7 @@ export default function BrowseTab({ tasks, myProposals, user, fetchFreelancerWor
       const resData = await response.json();
 
       if (response.ok && resData.success) {
-        alert("Proposal Node Deployed Successfully!");
+        toast.success("Proposal Node Deployed Successfully!");
         setProposedBudget("");
         setEstimatedDays("");
         setCoverNote("");
@@ -56,11 +57,11 @@ export default function BrowseTab({ tasks, myProposals, user, fetchFreelancerWor
         fetchFreelancerWorkspace(user.email);
         setActiveTab("proposals");
       } else {
-        alert(resData.message || "Failed to transmit ledger payload.");
+        toast.error(resData.message || "Failed to transmit ledger payload.");
       }
     } catch (err) {
       console.error("Proposal submission fault:", err);
-      alert("Network exception on submission link.");
+      toast.error("Network exception on submission link.");
     } finally {
       setSubmitting(false);
     }
