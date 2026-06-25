@@ -1,266 +1,233 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 
-export default function ClientDashboard() {
+import TaskPostForm from "./TaskPostForm";
+import ProposalsTable from "./ProposalsTable";
+
+function ClientDashboardContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const action = searchParams.get("action");
+
   const [user, setUser] = useState(null);
   const [proposals, setProposals] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // 🎯 ক্যাটাগরিতে ডিফল্ট ভ্যালু ডেভেলপমেন্ট সেট করা হলো যেন ডাটা মিসিং না হয়
-  const [formData, setFormData] = useState({ 
-    title: "", 
-    category: "Development", 
-    description: "", 
-    budget: "", 
-    deadline: "" 
-  });
-  
-  const [loading, setLoading] = useState(false);
-  const [proposalsLoading, setProposalsLoading] = useState(true);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  const [loading, setLoading] = useState(true);
+  const [isPostFormOpen, setIsPostFormOpen] = useState(false);
+
+  // ফর্ম ইনপুট স্টেটসমূহ
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskCategory, setTaskCategory] = useState("Development");
+  const [budget, setBudget] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [description, setDescription] = useState("");
+  const [formSubmitting, setFormSubmitting] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      fetchClientProposals();
+    } else {
+      setLoading(false);
     }
-    fetchClientProposals();
   }, []);
+
+  useEffect(() => {
+    setIsPostFormOpen(action === "post");
+  }, [action]);
 
   const fetchClientProposals = async () => {
     try {
       const response = await fetch("http://localhost:5000/api/client/proposals", {
-        credentials: "include"
+        credentials: "include",
       });
       const data = await response.json();
-      if (response.ok && data && Array.isArray(data.data)) {
-        setProposals(data.data);
-      } else {
-        setProposals([]);
+      if (response.ok) {
+        setProposals(data.data || data);
       }
     } catch (err) {
-      console.error("Failed to fetch proposals:", err);
-      setProposals([]);
+      console.error("Error fetching client proposals:", err);
     } finally {
-      setProposalsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
+  const handlePostTask = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage({ type: "", text: "" });
-
-    // ডক ভ্যালিডেশন অনুযায়ী ক্লিন পেলোড তৈরি
-    const taskPayload = {
-      title: formData.title ? formData.title.trim() : "",
-      category: formData.category || "Development", 
-      description: formData.description ? formData.description.trim() : "",
-      budget: parseFloat(formData.budget) || 0, 
-      deadline: formData.deadline || "",
-    };
-
-    if (!taskPayload.title || !taskPayload.description || !taskPayload.budget || !taskPayload.deadline) {
-      setMessage({ type: "error", text: "Please fill up all required fields properly." });
-      setLoading(false);
+    if (!taskTitle.trim() || !budget || !deadline || !taskCategory) {
+      alert("Please fill in all mandatory fields.");
       return;
     }
 
+    const parsedBudget = parseFloat(budget);
+    const parsedDeadline = parseInt(deadline);
+
+    if (isNaN(parsedBudget) || isNaN(parsedDeadline)) {
+      alert("Please enter valid numbers for Budget and Deadline.");
+      return;
+    }
+
+    setFormSubmitting(true);
     try {
       const response = await fetch("http://localhost:5000/api/tasks", {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json" 
-        },
-        body: JSON.stringify(taskPayload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: taskTitle.trim(),
+          category: taskCategory,
+          budget: parsedBudget,
+          deadline: parsedDeadline,
+          description: description.trim() || "",
+          client_email: user?.email,
+          status: "open",
+        }),
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        alert("Task Vector Deployed Successfully!");
+        setTaskTitle("");
+        setTaskCategory("Development");
+        setBudget("");
+        setDeadline("");
+        setDescription("");
+        router.push("/dashboard/client");
+      } else {
+        const errData = await response.json();
+        alert(errData.message || "Failed to post task.");
+      }
+    } catch (err) {
+      console.error("Task submission crash:", err);
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  const handleAcceptProposal = async (proposal) => {
+    try {
+      const finalAmount = parseFloat(proposal?.proposed_budget || 0);
+      const finalTitle = proposal?.taskTitle || "SkillSwap Project Milestone";
+
+      if (!finalAmount || finalAmount <= 0) {
+        alert("Error: Invalid budget detected for checkout.");
+        return;
+      }
+
+      const response = await fetch("http://localhost:5000/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proposalId: proposal._id,
+          taskTitle: finalTitle,
+          amount: finalAmount,
+        }),
         credentials: "include",
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to post task.");
+      if (response.ok && data.url) {
+        localStorage.setItem("escrow_payment_pending", JSON.stringify(proposal));
+        window.location.href = data.url;
+      } else {
+        alert(data.message || "Stripe initialization failed.");
       }
-
-      setMessage({ type: "success", text: "Task posted successfully!" });
-      setFormData({ title: "", category: "Development", description: "", budget: "", deadline: "" });
-      
-      setTimeout(() => {
-        setIsModalOpen(false);
-        setMessage({ type: "", text: "" });
-        window.location.reload(); 
-      }, 1500);
-
     } catch (err) {
-      setMessage({ type: "error", text: err.message });
-    } finally {
-      setLoading(false);
+      console.error("Payment routing crash:", err);
     }
   };
 
-  const handleAcceptProposal = async (proposalId) => {
-    if (!confirm("Are you sure you want to accept this proposal?")) return;
+  // 🎯 ফিক্সড হ্যান্ডলার: আনডিফাইন্ড ভ্যারিয়েবল ক্র্যাশ সেফ করা হয়েছে
+  const handleGiveRating = async (freelancerEmail, ratingValue) => {
+    if (!freelancerEmail) {
+      alert("❌ Error: Freelancer email node identifier is missing.");
+      return;
+    }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/proposals/${proposalId}/accept`, {
-        method: "PATCH",
-        credentials: "include"
+      const response = await fetch("http://localhost:5000/api/reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          task_id: "", 
+          reviewer_email: user?.email || "client@network.com",
+          reviewee_email: freelancerEmail.trim(), 
+          rating: parseFloat(ratingValue),
+          comment: "Decentralized task operation successfully evaluated."
+        }),
       });
 
-      if (response.ok) {
-        alert("Proposal Accepted!");
-        fetchClientProposals();
+      const resData = await response.json();
+
+      if (response.ok && resData.success) {
+        alert("⭐ Review Node Deployed into Separate Collection Successfully!");
+        fetchClientProposals(); // ড্যাশবোর্ড ডাটা রিফ্রেশ
       } else {
-        alert("Failed to accept proposal.");
+        alert(`❌ REJECT: ${resData.message || "Failed to secure rating node."}`);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Rating Submission Error:", err);
+      alert("Network error: Cannot reach separate collection server.");
     }
   };
 
-  const safeProposals = Array.isArray(proposals) ? proposals : [];
-  const uniqueTaskCount = new Set(safeProposals.map(p => p?.task_id).filter(Boolean)).size;
-  const activeProjectsCount = safeProposals.filter(p => p?.status === "accepted").length;
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-emerald-400 text-xs font-medium animate-pulse">Synchronizing client workspace...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#0B0B0F] text-white p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* হেডার */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-xl">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">Client Dashboard</h1>
-            <p className="text-gray-400 mt-1">Welcome back, {user?.name || "Client"}!</p>
-          </div>
-          <Button onClick={() => setIsModalOpen(true)} className="mt-4 md:mt-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold radius-lg">
-            Post a New Task
+    <div className="space-y-8">
+      <div className="border-b border-white/10 pb-4 flex justify-between items-center text-white">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">Client Console</h1>
+          <p className="text-gray-400 text-xs mt-1">
+            Active Session: <span className="text-blue-400 font-bold">{user?.name}</span> ({user?.email})
+          </p>
+        </div>
+        {!isPostFormOpen && (
+          <Button
+            onClick={() => router.push("/dashboard/client?action=post")}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs px-4 h-10 transition shadow-lg"
+          >
+            ➕ Post New Task
           </Button>
-        </div>
-
-        {/* Analytics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-            <h3 className="text-gray-400 text-sm font-medium">Tasks with Bids</h3>
-            <p className="text-3xl font-bold mt-2 text-emerald-400">{uniqueTaskCount}</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-            <h3 className="text-gray-400 text-sm font-medium">Active (Ongoing) Projects</h3>
-            <p className="text-3xl font-bold mt-2 text-teal-400">{activeProjectsCount}</p>
-          </div>
-          <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-            <h3 className="text-gray-400 text-sm font-medium">Total Proposals Received</h3>
-            <p className="text-3xl font-bold mt-2 text-white">{safeProposals.length}</p>
-          </div>
-        </div>
-
-        {/* Proposal List Section */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-white">Received Bids & Proposals</h2>
-          
-          {proposalsLoading ? (
-            <div className="text-gray-400 animate-pulse">Loading received bids...</div>
-          ) : safeProposals.length === 0 ? (
-            <div className="p-8 text-center bg-white/5 border border-white/10 rounded-2xl text-gray-400">
-              No proposals received yet for your posted tasks.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {safeProposals.map((proposal) => (
-                <div key={proposal?._id} className="bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 backdrop-blur-xl">
-                  <div className="space-y-2 max-w-2xl">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                        {proposal?.taskTitle || "Unknown Task"}
-                      </span>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded capitalize ${
-                        proposal?.status === "accepted" ? "bg-teal-500/20 text-teal-400" : "bg-amber-500/20 text-amber-400"
-                      }`}>
-                        {proposal?.status || "pending"}
-                      </span>
-                    </div>
-                    {/* 🎯 ডক রিকোয়ারমেন্ট অনুযায়ী অবজেক্ট ম্যাপিং ফিক্স */}
-                    <p className="text-sm text-gray-400">From: <span className="text-white font-medium">{proposal?.freelancer_email || "Freelancer"}</span></p>
-                    <p className="text-gray-300 text-sm leading-relaxed border-l-2 border-white/10 pl-3 italic">"{proposal?.cover_note || ""}"</p>
-                  </div>
-
-                  <div className="flex md:flex-col justify-between w-full md:w-auto items-center md:items-end gap-4 border-t md:border-t-0 pt-4 md:pt-0 border-white/10">
-                    <div className="text-left md:text-right">
-                      <p className="text-xs text-gray-500 uppercase">Offer / Duration</p>
-                      {/* 🎯 ডক রিকোয়ারমেন্ট অনুযায়ী অবজেক্ট ম্যাপিং ফিক্স */}
-                      <p className="text-lg font-bold text-white">${proposal?.proposed_budget || 0} <span className="text-xs text-gray-400 font-normal">in {proposal?.estimated_days || 0} days</span></p>
-                    </div>
-                    {proposal?.status !== "accepted" && (
-                      <Button onClick={() => handleAcceptProposal(proposal?._id)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold radius-lg text-sm px-4 py-2">
-                        Accept Bid
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Task Form Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-            <div className="bg-[#0B0B0F] border border-white/10 w-full max-w-lg p-6 rounded-2xl space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
-              <div className="flex justify-between items-center border-b border-white/10 pb-3">
-                <h2 className="text-xl font-bold text-white">Create a New Task</h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white text-xl">&times;</button>
-              </div>
-              {message.text && <p className={`text-sm p-3 rounded-xl border ${message.type === "success" ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-red-400 bg-red-500/10 border-red-500/20"}`}>{message.text}</p>}
-              <form onSubmit={handleSubmit} className="space-y-4 text-left">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Task Title</label>
-                  <input type="text" name="title" required value={formData.title} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition" placeholder="Build a Next.js App" />
-                </div>
-                {/* 🎯 CHALLENGE 1: ক্যাটাগরি ড্রপডাউন ইনপুট বক্স যোগ করা হলো */}
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Category</label>
-                  <select 
-                    name="category" 
-                    value={formData.category} 
-                    onChange={handleChange} 
-                    className="w-full bg-[#0B0B0F] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition cursor-pointer"
-                  >
-                    <option value="Development">Development</option>
-                    <option value="Design">Design</option>
-                    <option value="Writing">Writing</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Description</label>
-                  <textarea name="description" required rows="4" value={formData.description} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition resize-none" placeholder="Requirements..." />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-300">Budget ($)</label>
-                    <input type="number" name="budget" required min="1" value={formData.budget} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition" placeholder="500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-300">Deadline</label>
-                    <input type="date" name="deadline" required value={formData.deadline} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition color-scheme-dark" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <Button type="button" onClick={() => setIsModalOpen(false)} className="bg-neutral-800 hover:bg-neutral-700 text-white font-medium radius-lg">Cancel</Button>
-                  <Button type="submit" isLoading={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold radius-lg">Submit Task</Button>
-                </div>
-              </form>
-            </div>
-          </div>
         )}
-
       </div>
+
+      {isPostFormOpen ? (
+        <TaskPostForm
+          taskTitle={taskTitle} setTaskTitle={setTaskTitle}
+          taskCategory={taskCategory} setTaskCategory={setTaskCategory}
+          budget={budget} setBudget={setBudget}
+          deadline={deadline} setDeadline={setDeadline}
+          description={description} setDescription={setDescription}
+          formSubmitting={formSubmitting} handlePostTask={handlePostTask} router={router}
+        />
+      ) : (
+        <ProposalsTable
+          proposals={proposals}
+          handleGiveRating={handleGiveRating}
+          handleAcceptProposal={handleAcceptProposal}
+        />
+      )}
     </div>
+  );
+}
+
+export default function ClientDashboard() {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center text-white"><p className="text-emerald-400 text-xs font-medium animate-pulse">Loading Client Workspace...</p></div>}>
+      <ClientDashboardContent />
+    </Suspense>
   );
 }

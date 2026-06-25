@@ -11,7 +11,7 @@
   "dependencies": {
     "@better-auth/mongo-adapter": "^1.6.17",
     "@gravity-ui/icons": "^2.18.0",
-    "@heroui/react": "^3.1.0",
+    "@heroui/react": "^3.2.1",
     "@heroui/styles": "^3.1.0",
     "better-auth": "^1.6.17",
     "embla-carousel-autoplay": "^8.6.0",

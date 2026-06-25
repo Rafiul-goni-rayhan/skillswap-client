@@ -33,10 +33,13 @@ export default function Navbar() {
   }, []);
 
   // সিকিউর লগআউট হ্যান্ডলার (ব্যাকএন্ড কুকি ও লোকাল স্টোরেজ রিমুভ)
-  const handleLogout = async () => {
+ const handleLogout = async () => {
     try {
       const response = await fetch("http://localhost:5000/api/logout", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json", // 🎯 এটা যোগ করে দেওয়া সেফ
+        },
         credentials: "include", // HTTPOnly কুকি ক্লিয়ার করার জন্য আবশ্যক
       });
 
@@ -44,7 +47,9 @@ export default function Navbar() {
         localStorage.removeItem("user");
         setUser(null);
         alert("Logged out successfully!");
-        window.location.href = "/auth/signin"; // লগআউট হলে নতুন সাইন-ইন পাথে রিডাইরেক্ট
+        
+        // 🎯 রিডাইরেক্ট করার পর পেজটি যেন ক্লিন স্টেটে লোড হয়
+        window.location.href = "/auth/signin"; 
       } else {
         alert("Logout failed. Please try again.");
       }
@@ -57,7 +62,7 @@ export default function Navbar() {
   const navLinks = [
     { id: "home", label: "Home", href: "/" },
     { id: "browse-tasks", label: "Browse Tasks", href: "/tasks" },
-    { id: "browse-freelancers", label: "Browse Freelancers", href: "/dashboard/freelancers" },
+    { id: "browse-freelancers", label: "Browse Freelancers", href: "/freelancers" },
   ];
 
   // SkillSwap-এর জন্য নির্দিষ্ট ড্যাশবোর্ড ম্যাপিং

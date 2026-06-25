@@ -6,7 +6,7 @@ import { Button } from "@heroui/react";
 export default function Hero() {
   return (
     <section className="relative max-w-7xl mx-auto px-8 pt-20 text-center space-y-6">
-      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 blur-3xl -z-10 rounded-full max-w-3xl mx-auto h-72" />
+      <div className="absolute inset-0 bg-gradient-to-r blur-3xl -z-10 rounded-full max-w-3xl mx-auto h-72" />
       <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
         Get your tasks done by <br />
         <span className="bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">

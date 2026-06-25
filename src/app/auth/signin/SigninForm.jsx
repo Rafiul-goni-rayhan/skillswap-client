@@ -34,17 +34,25 @@ export default function SignInPage() {
         throw new Error(data.message || "Login failed!");
       }
 
-      // লোকাল স্টোরেজে ডাটা সেভ (Navbar সিঙ্কের জন্য)
+      // 🎯 ১. ওল্ড ক্যাশ ডেটা থাকলে তা পুরোপুরি সাফ করা (মোস্ট ইম্পর্ট্যান্ট)
+      localStorage.removeItem("user");
+
+      // ২. লোকাল স্টোরেজে নতুন ফ্রেশ ডাটা সেভ
       localStorage.setItem("user", JSON.stringify(data.user));
 
       alert("Login Successful!");
 
-      // রোল ভিত্তিক ড্যাশবোর্ডে রিডাইরেক্ট
-      const userRole = data.user.role;
-      if (userRole === "client") {
+      // 🎯 ৩. রোল ভিত্তিক নিখুঁত রিডাইরেক্ট মেকানিজম (কেস-সেন্সিটিভ সেফ)
+      const userRole = data.user?.role?.toLowerCase(); // ছোট হাতের অক্ষরে কনভার্ট করে চেক
+
+      if (userRole === "admin") {
+        window.location.href = "/dashboard/admin";
+      } else if (userRole === "client") {
         window.location.href = "/";
-      } else if (userRole === "freelancer" || userRole === "admin") {
-        window.location.href = `/dashboard/${userRole}`;
+      } else if (userRole === "freelancer") {
+        window.location.href = "/dashboard/freelancer";
+      } else {
+        window.location.href = "/dashboard";
       }
 
     } catch (err) {
