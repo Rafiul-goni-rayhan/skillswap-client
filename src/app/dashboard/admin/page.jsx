@@ -37,10 +37,10 @@ function AdminDashboardContent() {
     try {
       // একসাথে সব ডাটা ফেচ করা
       const [statsRes, usersRes, tasksRes, txRes] = await Promise.all([
-        fetch("http://localhost:5000/api/admin/stats"),
-        fetch("http://localhost:5000/api/users"),
-        fetch("http://localhost:5000/api/tasks"), // তোমার অল টাস্ক রাউট
-        fetch("http://localhost:5000/api/admin/transactions")
+        fetch("https://skillswap-server-one.vercel.app/api/admin/stats"),
+        fetch("https://skillswap-server-one.vercel.app/api/users"),
+        fetch("https://skillswap-server-one.vercel.app/api/tasks"), // তোমার অল টাস্ক রাউট
+        fetch("https://skillswap-server-one.vercel.app/api/admin/transactions")
       ]);
 
       // 🎯 সেফ পার্সিং মেকানিজম: এইচটিএমএল এরর আসলে ক্র্যাশ করবে না
@@ -74,7 +74,7 @@ function AdminDashboardContent() {
   // 🛠️ ইউজার ব্লক/আনব্লক হ্যান্ডলার
   const handleToggleBlock = async (userId, currentStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/block`, {
+      const response = await fetch(`https://skillswap-server-one.vercel.app/api/admin/users/${userId}/block`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ blockStatus: !currentStatus })
@@ -92,7 +92,7 @@ function AdminDashboardContent() {
   const handleDeleteTask = async (taskId) => {
     if (!confirm("Are you sure you want to delete this task for guideline violation?")) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/tasks/${taskId}`, {
+      const response = await fetch(`https://skillswap-server-one.vercel.app/api/admin/tasks/${taskId}`, {
         method: "DELETE"
       });
       if (response.ok) {

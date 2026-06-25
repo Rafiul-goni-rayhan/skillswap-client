@@ -25,7 +25,7 @@ function SuccessPageContent() {
     const verifyTransactionAndSaveToDb = async () => {
       try {
         // ১. স্ট্রাইপ সেশন কনফার্মেশন এপিআই হিট করা
-        const response = await fetch("http://localhost:5000/api/confirm-session", {
+        const response = await fetch("https://skillswap-server-one.vercel.app/api/confirm-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId, proposalId }),
@@ -41,7 +41,7 @@ function SuccessPageContent() {
         setTxData(verifiedData);
 
         // 🎯 ২. SECTION 13 অনুযায়ী payments কালেকশনে ডাটা ইনসার্ট করার এপিআই কল
-        await fetch("http://localhost:5000/api/payments", {
+        await fetch("https://skillswap-server-one.vercel.app/api/payments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -170,7 +170,7 @@ export default function PaymentSuccessPage() {
 
 //     const verifyTransaction = async () => {
 //       try {
-//         const response = await fetch("http://localhost:5000/api/confirm-session", {
+//         const response = await fetch("https://skillswap-server-one.vercel.app/api/confirm-session", {
 //           method: "POST",
 //           headers: { "Content-Type": "application/json" },
 //           body: JSON.stringify({ sessionId, proposalId }),

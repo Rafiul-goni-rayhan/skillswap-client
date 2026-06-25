@@ -51,7 +51,7 @@ export default function SignUpPage() {
 
     try {
       // ডাটাবেজে ডাটা পাঠানোর জন্য ব্যাকএন্ডের সঠিক ৫০0০ পোর্টে এপিআই কল
-      const response = await fetch("http://localhost:5000/api/register", {
+      const response = await fetch("https://skillswap-server-one.vercel.app/api/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -232,7 +232,7 @@ export default function SignUpPage() {
 
 //     try {
 //       // ব্যাকএন্ডের সঠিক পোর্ট (5000) এ রিকোয়েস্ট পাঠানো হচ্ছে
-//       const response = await fetch("http://localhost:5000/api/register", {
+//       const response = await fetch("https://skillswap-server-one.vercel.app/api/register", {
 //         method: "POST",
 //         headers: {
 //           "Content-Type": "application/json",

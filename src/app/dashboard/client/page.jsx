@@ -42,7 +42,7 @@ function ClientDashboardContent() {
 
   const fetchClientProposals = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/client/proposals", {
+      const response = await fetch("https://skillswap-server-one.vercel.app/api/client/proposals", {
         credentials: "include",
       });
       const data = await response.json();
@@ -73,7 +73,7 @@ function ClientDashboardContent() {
 
     setFormSubmitting(true);
     try {
-      const response = await fetch("http://localhost:5000/api/tasks", {
+      const response = await fetch("https://skillswap-server-one.vercel.app/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -117,7 +117,7 @@ function ClientDashboardContent() {
         return;
       }
 
-      const response = await fetch("http://localhost:5000/api/create-checkout-session", {
+      const response = await fetch("https://skillswap-server-one.vercel.app/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -148,7 +148,7 @@ function ClientDashboardContent() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/reviews", {
+      const response = await fetch("https://skillswap-server-one.vercel.app/api/reviews", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

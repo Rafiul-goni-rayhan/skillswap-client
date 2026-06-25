@@ -20,7 +20,7 @@ export default function BrowseFreelancers() {
     try {
       setLoading(true);
       setError("");
-      const url = `http://localhost:5000/api/freelancers?page=${currentPage}&limit=${limit}&search=${searchText}&category=${selectedCategory}`;
+      const url = `https://skillswap-server-one.vercel.app/api/freelancers?page=${currentPage}&limit=${limit}&search=${searchText}&category=${selectedCategory}`;
       
       const response = await fetch(url);
       const resData = await response.json();

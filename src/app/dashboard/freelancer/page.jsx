@@ -59,8 +59,8 @@ function FreelancerDashboardContent() {
     try {
       setLoading(true);
       const [tasksRes, proposalsRes] = await Promise.all([
-        fetch("http://localhost:5000/api/tasks"),
-        fetch(`http://localhost:5000/api/freelancer/proposals`, {
+        fetch("https://skillswap-server-one.vercel.app/api/tasks"),
+        fetch(`https://skillswap-server-one.vercel.app/api/freelancer/proposals`, {
           credentials: "include"
         })
       ]);
@@ -101,7 +101,7 @@ function FreelancerDashboardContent() {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/tasks/${activeDeliverableTask._id}/complete`, {
+      const response = await fetch(`https://skillswap-server-one.vercel.app/api/tasks/${activeDeliverableTask._id}/complete`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ deliverable_url: deliverableUrl })
@@ -131,7 +131,7 @@ function FreelancerDashboardContent() {
     };
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/profile`, {
+      const response = await fetch(`https://skillswap-server-one.vercel.app/api/users/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedPayload),

@@ -32,7 +32,7 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
     // টাস্ক ডিটেইলস ফেচ করা
     const fetchTaskDetails = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/tasks/${taskId}`);
+        const response = await fetch(`https://skillswap-server-one.vercel.app/api/tasks/${taskId}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -74,7 +74,7 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/proposals", {
+      const response = await fetch("https://skillswap-server-one.vercel.app/api/proposals", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
