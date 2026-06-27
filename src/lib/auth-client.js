@@ -1,24 +1,23 @@
-// import { jwtClient } from "better-auth/client/plugins";
-// import { createAuthClient } from "better-auth/react";
-
-// export const authClient = createAuthClient({
-//   // 🎯 ডাইনামিক বেস ইউআরএল: লোকালহোস্টে থাকলে ৫০০০ পোর্ট, আর প্রোডাকশনে থাকলে লাইভ ব্যাকএন্ড লিঙ্ক রিড করবে ভাই
-//   baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000",
-//   plugins: [jwtClient()],
-// });
-
-// export const { signIn, signUp, useSession } = authClient;
-
-
-
 import { jwtClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
+
 export const authClient = createAuthClient({
+  // 🎯 মোস্ট ইম্পর্ট্যান্ট ফিক্স: এখানে অবশ্যই তোমার এক্সপ্রেস ব্যাকঅ্যান্ডের লিঙ্ক হবে ভাই!
   baseURL: "https://skillswap-client-virid.vercel.app",
-  // baseURL: "http://localhost:3000",
   plugins: [jwtClient()],
 });
-export const { signIn, signUp, useSession } = authClient
+
+export const { signIn, signUp, useSession } = authClient;
+
+
+// import { jwtClient } from "better-auth/client/plugins";
+// import { createAuthClient } from "better-auth/react";
+// export const authClient = createAuthClient({
+//   baseURL: "https://skillswap-client-virid.vercel.app",
+//   // baseURL: "http://localhost:3000",
+//   plugins: [jwtClient()],
+// });
+// export const { signIn, signUp, useSession } = authClient
 
 
 

@@ -152,14 +152,14 @@ export default function Navbar() {
                   >
                     Sign In
                   </Link>
-                  <Button
+                  {/* <Button
                     as={Link}
-                    href="/auth/signup"
+                    href="/"
                     radius="lg"
                     className="h-11 bg-emerald-600 px-6 text-sm font-semibold text-white hover:bg-emerald-700 transition"
                   >
                     Get Started
-                  </Button>
+                  </Button> */}
                 </>
               )}
             </div>
