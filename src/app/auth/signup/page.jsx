@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@heroui/react";
 import { toast } from "react-hot-toast";
-import { authClient } from "@/lib/auth-client"; // আপনার auth-client এর সঠিক পাথ দিন
+import { authClient } from "@/lib/auth-client"; 
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -12,7 +12,7 @@ export default function SignUpPage() {
     email: "",
     image: "",
     password: "",
-    role: "client", // ডিফল্ট রোল 'client'
+    role: "freelancer", // ডিফল্ট রোল 'freelancer'
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
