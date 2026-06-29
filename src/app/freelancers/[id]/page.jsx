@@ -11,7 +11,7 @@ export default function ClientTaskBidsPage() {
 
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [payLoading, setPayLoading] = useState(null); // নির্দিষ্ট বাটনে লোডার দেখানোর জন্য
+  const [payLoading, setPayLoading] = useState(null); 
 
   useEffect(() => {
     if (!taskId) return;
@@ -38,10 +38,10 @@ export default function ClientTaskBidsPage() {
     fetchTaskProposals(); 
   }, [taskId]);
 
-  // 🚀 🎯 নতুন পেমেন্ট হ্যান্ডলার ফাংশন (Approve & Pay)
+ 
   const handleAcceptAndPay = async (bid) => {
     try {
-      setPayLoading(bid._id); // ক্লিক করা বাটনে লোডিং স্টেট অন করা
+      setPayLoading(bid._id); 
       
       const finalAmount = parseFloat(bid.proposed_budget || 0);
       
