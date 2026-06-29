@@ -31,7 +31,6 @@ export default function TopFreelancers({ freelancers, loading }) {
             <div key={freelancer._id} className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col justify-between backdrop-blur-xl hover:border-white/20 transition-all duration-300 group">
               <div className="space-y-4">
                 
-                {/* 👤 প্রোফাইল ইমেজ, নাম ও রেট */}
                 <div className="flex items-center gap-3">
                   <img 
                     src={freelancer.image || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"} 
