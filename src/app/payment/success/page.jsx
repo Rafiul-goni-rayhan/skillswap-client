@@ -3,7 +3,6 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
-// Better Auth এর ক্লায়েন্ট হুক যুক্ত করা হলো
 import { useSession } from "@/lib/auth-client"; 
 
 function SuccessPageContent() {
@@ -21,7 +20,6 @@ function SuccessPageContent() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // ১. টোকেন বা সেশন লোড হওয়া শেষ না হওয়া পর্যন্ত এপিআই কল আটকে রাখা হবে
     if (isSessionLoading) return;
 
     if (!sessionId || !proposalId) {
@@ -45,7 +43,7 @@ function SuccessPageContent() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ 
-            sessionId: sessionId,    // 🎯 ব্যাকএন্ডের জন্য প্রয়োজনীয় ডাটা পাঠানো হলো
+            sessionId: sessionId,
             proposalId: proposalId
           }),
           credentials: "include", 

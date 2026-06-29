@@ -46,24 +46,22 @@ export default function BrowseFreelancers() {
     }
   };
 
-  // 🎯 কারেন্ট পেজ ডিপেন্ডেন্সি ট্র্যাক করার রিঅ্যাক্ট হুক লুপ
   useEffect(() => {
     fetchFreelancers();
   }, [currentPage]);
 
-  // 🔒 কনস্ট্রেইন: সার্চ টেক্সট চেঞ্জ হলে কারেন্ট পেজকে ১ এ রিসেট করা
+
   const handleSearchChange = (e) => {
     setSearchText(e.target.value);
     setCurrentPage(1); 
   };
 
-  // 🔒 কনস্ট্রেইন: ক্যাটাগরি আইটেম চেঞ্জ হলে কারেন্ট পেজকে ১ এ রিসেট করা
+
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
     setCurrentPage(1); 
   };
 
-  // ফিল্টার বাটন বা ফর্ম এন্টার সাবমিট ট্রিগার
   const handleFilterSubmit = (e) => {
     e.preventDefault();
     fetchFreelancers();
