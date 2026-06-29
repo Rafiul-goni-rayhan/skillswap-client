@@ -21,7 +21,7 @@ export default function BrowseTasksPage() {
       setLoading(true);
       try {
         // ব্যাকএন্ড এপিআই তে সার্চ, ফিল্টার এবং পেজ পাঠানো হচ্ছে
-        const url = `https://skillswap-server-one.vercel.app/api/tasks?page=${currentPage}&limit=9&search=${search}&category=${category}`;
+        const url = `${process.env.NEXT_PUBLIC_SERVER_URL}/api/tasks?page=${currentPage}&limit=9&search=${search}&category=${category}`;
         const response = await fetch(url);
         const data = await response.json();
 
@@ -210,7 +210,7 @@ export default function BrowseTasksPage() {
 //   useEffect(() => {
 //     const fetchTasks = async () => {
 //       try {
-//         const response = await fetch("https://skillswap-server-one.vercel.app/api/tasks");
+//         const response = await fetch("${process.env.NEXT_PUBLIC_SERVER_URL}/api/tasks");
 //         const data = await response.json();
 
 //         if (!response.ok) {

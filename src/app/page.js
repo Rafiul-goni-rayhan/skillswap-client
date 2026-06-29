@@ -17,7 +17,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchHomeData = async () => {
       try {
-        const response = await fetch("https://skillswap-server-one.vercel.app/api/home-data");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/home-data`);
         
         // 🎯 ১. প্রথম সেফটি চেক: রেসপন্স টাইপ জেসন নাকি এইচটিএমএল তা ভেরিফাই করা
         const contentType = response.headers.get("content-type");
@@ -77,7 +77,7 @@ export default function HomePage() {
 //   useEffect(() => {
 //     const fetchHomeData = async () => {
 //       try {
-//         const response = await fetch("https://skillswap-server-one.vercel.app/api/home-data");
+//         const response = await fetch("${process.env.NEXT_PUBLIC_SERVER_URL}/api/home-data");
 //         const data = await response.json();
 //         if (response.ok) {
 //           setHomeData(data);

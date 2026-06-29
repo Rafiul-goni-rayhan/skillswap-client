@@ -12,10 +12,12 @@ const client = new MongoClient(process.env.MONGODB_URI);
 const db = client.db("skillswap");
 
 export const auth = betterAuth({
-  baseURL:"https://skillswap-client-virid.vercel.app",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  // baseURL:"https://skillswap-client-virid.vercel.app",
   trustedOrigins: [
-    "https://skillswap-client-virid.vercel.app",
-    // "http://localhost:3000",
+    // "https://skillswap-client-virid.vercel.app",
+    process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    "https://skillswap-client-virid.vercel.app"
   ],
 
   database: mongodbAdapter(db, {

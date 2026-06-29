@@ -43,7 +43,7 @@ export default function ProfilePage() {
     setMessage({ type: "", text: "" });
 
     try {
-     const response = await fetch("https://skillswap-server-one.vercel.app/api/users/profile", {
+     const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/users/profile`, {
   method: "PATCH", // <-- মেথডটি হুবহু "PATCH" করে দাও
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(profileForm),

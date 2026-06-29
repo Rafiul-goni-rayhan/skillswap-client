@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
+// Better Auth এর ক্লায়েন্ট মেথড বা হুক
+import { useSession } from "@/lib/auth-client"; 
 
 import TaskPostForm from "./TaskPostForm";
 import ProposalsTable from "./ProposalsTable";
@@ -13,9 +15,12 @@ function ClientDashboardContent() {
   const router = useRouter();
   const action = searchParams.get("action");
 
-  const [user, setUser] = useState(null);
+  // Better Auth থেকে সেশন এবং লোডিং স্টেট নেওয়া হচ্ছে
+  const { data: session, isPending: isSessionLoading } = useSession();
+  const user = session?.user;
+
   const [proposals, setProposals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false); // ডেটা ফেচিং ট্র্যাকিংয়ের জন্য আলাদা স্টেট
   const [isPostFormOpen, setIsPostFormOpen] = useState(false);
 
   // ফর্ম ইনপুট স্টেটসমূহ
@@ -26,36 +31,43 @@ function ClientDashboardContent() {
   const [description, setDescription] = useState("");
   const [formSubmitting, setFormSubmitting] = useState(false);
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      setUser(parsedUser);
-      fetchClientProposals();
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    setIsPostFormOpen(action === "post");
-  }, [action]);
-
-  const fetchClientProposals = async () => {
+  // ১. প্রোপোজাল ফেচ করার ফাংশন
+// ১. প্রোপোজাল ফেচ করার ফাংশন (ডিপেন্ডেন্সিতে সরাসরি user অবজেক্ট বা ইন্টারনাল প্রোপার্টি না রেখে ফাংশনকে ইন্ডিপেন্ডেন্ট রাখা হয়েছে)
+  const fetchClientProposals = useCallback(async (email) => {
+    if (!email) return;
+    
+    setDataLoading(true);
     try {
-      const response = await fetch("https://skillswap-server-one.vercel.app/api/client/proposals", {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/client/proposals?client_email=${encodeURIComponent(email)}`,
+        {
+          credentials: "include",
+        },
+      );
       const data = await response.json();
       if (response.ok) {
         setProposals(data.data || data);
       }
     } catch (err) {
       console.error("Error fetching client proposals:", err);
+      toast.error("Failed to fetch freelancer proposals.");
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
-  };
+  }, []); // ডিপেন্ডেন্সি অ্যারে খালি রাখা হয়েছে যাতে ফাংশনটি রি-ক্রিয়েট না হয়
+
+  // ২. সেশন লোড হওয়া এবং ইউজার ডেটা কনফার্ম হওয়ার পর এপিআই কল করা
+  useEffect(() => {
+    // সেশন পেন্ডিং না থাকলে এবং ইউজারের ইমেইল পাওয়া গেলে এপিআই কল হবে
+    if (!isSessionLoading && user?.email) {
+      fetchClientProposals(user.email);
+    }
+  }, [user?.email, isSessionLoading, fetchClientProposals]);
+
+  // URL Action মনিটর করা
+  useEffect(() => {
+    setIsPostFormOpen(action === "post");
+  }, [action]);
 
   const handlePostTask = async (e) => {
     e.preventDefault();
@@ -74,20 +86,23 @@ function ClientDashboardContent() {
 
     setFormSubmitting(true);
     try {
-      const response = await fetch("https://skillswap-server-one.vercel.app/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: taskTitle.trim(),
-          category: taskCategory,
-          budget: parsedBudget,
-          deadline: parsedDeadline,
-          description: description.trim() || "",
-          client_email: user?.email,
-          status: "open",
-        }),
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/tasks`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: taskTitle.trim(),
+            category: taskCategory,
+            budget: parsedBudget,
+            deadline: parsedDeadline,
+            description: description.trim() || "",
+            client_email: user?.email,
+            status: "open",
+          }),
+          credentials: "include",
+        },
+      );
 
       if (response.ok) {
         toast.success("Task Vector Deployed Successfully!");
@@ -97,12 +112,14 @@ function ClientDashboardContent() {
         setDeadline("");
         setDescription("");
         router.push("/dashboard/client");
+        fetchClientProposals();
       } else {
         const errData = await response.json();
         toast.error(errData.message || "Failed to post task.");
       }
     } catch (err) {
       console.error("Task submission crash:", err);
+      toast.error("Network error while submitting task.");
     } finally {
       setFormSubmitting(false);
     }
@@ -118,20 +135,26 @@ function ClientDashboardContent() {
         return;
       }
 
-      const response = await fetch("https://skillswap-server-one.vercel.app/api/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          proposalId: proposal._id,
-          taskTitle: finalTitle,
-          amount: finalAmount,
-        }),
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/create-checkout-session`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            proposalId: proposal._id,
+            taskTitle: finalTitle,
+            amount: finalAmount,
+          }),
+          credentials: "include",
+        },
+      );
 
       const data = await response.json();
       if (response.ok && data.url) {
-        localStorage.setItem("escrow_payment_pending", JSON.stringify(proposal));
+        localStorage.setItem(
+          "escrow_payment_pending",
+          JSON.stringify(proposal),
+        );
         window.location.href = data.url;
       } else {
         toast.error(data.message || "Stripe initialization failed.");
@@ -141,7 +164,6 @@ function ClientDashboardContent() {
     }
   };
 
-  // 🎯 ফিক্সড হ্যান্ডলার: আনডিফাইন্ড ভ্যারিয়েবল ক্র্যাশ সেফ করা হয়েছে
   const handleGiveRating = async (freelancerEmail, ratingValue) => {
     if (!freelancerEmail) {
       toast.error("❌ Error: Freelancer email node identifier is missing.");
@@ -149,27 +171,32 @@ function ClientDashboardContent() {
     }
 
     try {
-      const response = await fetch("https://skillswap-server-one.vercel.app/api/reviews", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/reviews`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            task_id: "",
+            reviewer_email: user?.email || "client@network.com",
+            reviewee_email: freelancerEmail.trim(),
+            rating: parseFloat(ratingValue),
+            comment: "Decentralized task operation successfully evaluated.",
+          }),
         },
-        body: JSON.stringify({ 
-          task_id: "", 
-          reviewer_email: user?.email || "client@network.com",
-          reviewee_email: freelancerEmail.trim(), 
-          rating: parseFloat(ratingValue),
-          comment: "Decentralized task operation successfully evaluated."
-        }),
-      });
+      );
 
       const resData = await response.json();
 
       if (response.ok && resData.success) {
-        toast.success("⭐ Review Node Deployed into Separate Collection Successfully!");
-        fetchClientProposals(); // ড্যাশবোর্ড ডাটা রিফ্রেশ
+        toast.success("⭐ Review Node Deployed Successfully!");
+        fetchClientProposals();
       } else {
-        toast.error(`❌ REJECT: ${resData.message || "Failed to secure rating node."}`);
+        toast.error(
+          `❌ REJECT: ${resData.message || "Failed to secure rating node."}`,
+        );
       }
     } catch (err) {
       console.error("Rating Submission Error:", err);
@@ -177,11 +204,14 @@ function ClientDashboardContent() {
     }
   };
 
-  if (loading) {
+  // মূল কন্ডিশন: সেশন লোড হওয়া পর্যন্ত বা সেশন ভেরিফাই হওয়া পর্যন্ত ফুল স্ক্রিন স্পিনার দেখাবে
+  if (isSessionLoading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
         <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-emerald-400 text-xs font-medium animate-pulse">Synchronizing client workspace...</p>
+        <p className="text-emerald-400 text-xs font-medium animate-pulse">
+          Synchronizing client workspace...
+        </p>
       </div>
     );
   }
@@ -192,7 +222,11 @@ function ClientDashboardContent() {
         <div>
           <h1 className="text-2xl font-black tracking-tight">Client Console</h1>
           <p className="text-gray-400 text-xs mt-1">
-            Active Session: <span className="text-blue-400 font-bold">{user?.name}</span> ({user?.email})
+            Active Session:{" "}
+            <span className="text-blue-400 font-bold">
+              {user?.name || "Guest"}
+            </span>{" "}
+            {user?.email ? `(${user.email})` : ""}
           </p>
         </div>
         {!isPostFormOpen && (
@@ -207,13 +241,25 @@ function ClientDashboardContent() {
 
       {isPostFormOpen ? (
         <TaskPostForm
-          taskTitle={taskTitle} setTaskTitle={setTaskTitle}
-          taskCategory={taskCategory} setTaskCategory={setTaskCategory}
-          budget={budget} setBudget={setBudget}
-          deadline={deadline} setDeadline={setDeadline}
-          description={description} setDescription={setDescription}
-          formSubmitting={formSubmitting} handlePostTask={handlePostTask} router={router}
+          taskTitle={taskTitle}
+          setTaskTitle={setTaskTitle}
+          taskCategory={taskCategory}
+          setTaskCategory={setTaskCategory}
+          budget={budget}
+          setBudget={setBudget}
+          deadline={deadline}
+          setDeadline={setDeadline}
+          description={description}
+          setDescription={setDescription}
+          formSubmitting={formSubmitting}
+          handlePostTask={handlePostTask}
+          router={router}
         />
+      ) : dataLoading ? (
+        // টেবিল ডাটা লোড হওয়ার সময় ভেতরের স্পিনার
+        <div className="flex justify-center py-10">
+          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
       ) : (
         <ProposalsTable
           proposals={proposals}
@@ -227,7 +273,15 @@ function ClientDashboardContent() {
 
 export default function ClientDashboard() {
   return (
-    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center text-white"><p className="text-emerald-400 text-xs font-medium animate-pulse">Loading Client Workspace...</p></div>}>
+    <Suspense
+      fallback = {
+        <div className="min-h-[60vh] flex items-center justify-center text-white">
+          <p className="text-emerald-400 text-xs font-medium animate-pulse">
+            Loading Client Workspace...
+          </p>
+        </div>
+      }
+    >
       <ClientDashboardContent />
     </Suspense>
   );

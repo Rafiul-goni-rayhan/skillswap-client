@@ -15,7 +15,7 @@ export default function PlatformStatistics() {
     const fetchPlatformStats = async () => {
       try {
         // 🎯 তোমার ব্যাকএন্ডের হোম-ডাটা বা স্ট্যাটস এপিআই থাকলে এখান থেকে রিয়েল ডাটা নিতে পারো
-        const response = await fetch("https://skillswap-server-one.vercel.app/api/home-data");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/home-data`);
         const data = await response.json();
         
         if (response.ok && data.stats) {

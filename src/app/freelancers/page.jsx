@@ -23,7 +23,7 @@ export default function BrowseFreelancers() {
     try {
       setLoading(true);
       setError("");
-      const url = `https://skillswap-server-one.vercel.app/api/freelancers?page=${currentPage}&limit=${limit}&search=${searchText}&category=${selectedCategory}`;
+      const url = `${process.env.NEXT_PUBLIC_SERVER_URL}/api/freelancers?page=${currentPage}&limit=${limit}&search=${searchText}&category=${selectedCategory}`;
       
       const response = await fetch(url);
       const resData = await response.json();
@@ -266,7 +266,7 @@ export default function BrowseFreelancers() {
 //     try {
 //       setLoading(true);
 //       setError("");
-//       const url = `https://skillswap-server-one.vercel.app/api/freelancers?page=${currentPage}&limit=${limit}&search=${searchText}&category=${selectedCategory}`;
+//       const url = `${process.env.NEXT_PUBLIC_SERVER_URL}/api/freelancers?page=${currentPage}&limit=${limit}&search=${searchText}&category=${selectedCategory}`;
       
 //       const response = await fetch(url);
 //       const resData = await response.json();

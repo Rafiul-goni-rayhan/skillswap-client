@@ -36,7 +36,7 @@ export default function Navbar() {
   // সিকিউর লগআউট হ্যান্ডলার (ব্যাকএন্ড কুকি ও লোকাল স্টোরেজ রিমুভ)
  const handleLogout = async () => {
     try {
-      const response = await fetch("https://skillswap-server-one.vercel.app/api/logout", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json", // 🎯 এটা যোগ করে দেওয়া সেফ

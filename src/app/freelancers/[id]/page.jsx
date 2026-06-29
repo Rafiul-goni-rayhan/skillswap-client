@@ -1,109 +1,177 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
-export default function FreelancerDetails() {
-  const { id } = useParams(); 
-  const [freelancer, setFreelancer] = useState(null);
+export default function ClientTaskBidsPage() {
+  const params = useParams();
+  const router = useRouter();
+  const taskId = params?.id; 
+
+  const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [payLoading, setPayLoading] = useState(null); // নির্দিষ্ট বাটনে লোডার দেখানোর জন্য
 
   useEffect(() => {
-    const fetchSingleFreelancer = async () => {
+    if (!taskId) return;
+
+    const fetchTaskProposals = async () => {
       try {
         setLoading(true);
-        setError("");
-        
-        // 🚀 আমাদের নতুন তৈরি করা ডেডিকেটেড ব্যাকএন্ড এপিআই-তে হিট করছি ভাই
-        const response = await fetch(`https://skillswap-server-one.vercel.app/api/freelancers/${id}`);
-        const resData = await response.json();
-        
-        if (response.ok && resData.success) {
-          setFreelancer(resData.data);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/proposals/task/${taskId}`);
+        const data = await res.json();
+
+        if (data.success) {
+          setBids(data.proposals || []);
         } else {
-          setError(resData.message || "Failed to load freelancer metadata.");
+          toast.error(data.message || "Failed to load proposals.");
         }
-      } catch (err) {
-        console.error("Error loading profile:", err);
-        setError("Network error. Could not reach server nodes.");
+      } catch (error) {
+        console.error("Error fetching bids:", error);
+        toast.error("Network error while fetching proposals.");
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) fetchSingleFreelancer();
-  }, [id]);
+    fetchTaskProposals(); 
+  }, [taskId]);
+
+  // 🚀 🎯 নতুন পেমেন্ট হ্যান্ডলার ফাংশন (Approve & Pay)
+  const handleAcceptAndPay = async (bid) => {
+    try {
+      setPayLoading(bid._id); // ক্লিক করা বাটনে লোডিং স্টেট অন করা
+      
+      const finalAmount = parseFloat(bid.proposed_budget || 0);
+      
+      if (!finalAmount || finalAmount <= 0) {
+        toast.error("Error: Invalid budget detected for checkout.");
+        return;
+      }
+
+      // স্ট্রাইপ সেশন তৈরি করার জন্য ব্যাকএন্ডে হিট করা হচ্ছে (টোকেন-মুক্ত ওপেন এপিআই)
+      const response = await fetch("${process.env.NEXT_PUBLIC_SERVER_URL}/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proposalId: bid._id,
+          taskTitle: "SkillSwap Job Milestone Deployment",
+          amount: finalAmount,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.url) {
+        // পেমেন্ট পেন্ডিং ট্র্যাকিংয়ের জন্য লোকালস্টোরেজে ডাটা ব্যাকআপ রাখা
+        localStorage.setItem("escrow_payment_pending", JSON.stringify(bid));
+        
+        // সরাসরি স্ট্রাইপের সিকিউর পেমেন্ট চেকআউট পেজে রিডাইরেক্ট
+        window.location.href = data.url;
+      } else {
+        toast.error(data.message || "Stripe initialization failed.");
+      }
+    } catch (err) {
+      console.error("Payment routing crash:", err);
+      toast.error("Stripe gateway network error.");
+    } finally {
+      setPayLoading(null);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0B0B0F] flex items-center justify-center text-white">
-        <div className="animate-pulse text-sm font-mono text-emerald-400">Synchronizing profile nodes...</div>
-      </div>
-    );
-  }
-
-  if (error || !freelancer) {
-    return (
-      <div className="min-h-screen bg-[#0B0B0F] text-white flex items-center justify-center">
-        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-center text-xs font-mono max-w-md w-full">
-          {error || "Freelancer data structure unmapped."}
-        </div>
+      <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-2">
+        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-emerald-400 font-mono text-xs animate-pulse">Syncing proposals...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B0F] text-white p-8 flex items-center justify-center">
-      <div className="max-w-2xl w-full bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-xl shadow-2xl relative group">
-        
-        <div className="absolute -top-10 -left-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
-          <img 
-            src={freelancer.image || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"} 
-            alt={freelancer.name} 
-            className="w-28 h-28 rounded-full object-cover border-4 border-emerald-500/20 group-hover:border-emerald-500 transition-all duration-300"
-          />
-          <div className="space-y-2 text-center md:text-left flex-1">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
-              {freelancer.name}
-            </h1>
-            <p className="text-gray-400 font-mono text-sm">{freelancer.email}</p>
-            <div className="inline-block bg-emerald-500/10 text-emerald-400 font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider mt-1">
-              Hourly Rate: ${freelancer.hourly_rate || 25}/hr
-            </div>
-          </div>
+    <div className="p-6 text-white bg-[#0B0B0F] min-h-screen">
+      <div className="flex justify-between items-center border-b border-white/10 pb-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
+            Freelancer Proposals
+          </h1>
+          <p className="text-gray-400 text-xs mt-1">
+            Total <span className="text-emerald-400 font-bold">{bids.length}</span> candidates applied
+          </p>
         </div>
-
-        <hr className="border-white/10 my-6" />
-
-        <div className="space-y-4 relative z-10">
-          <div>
-            <h3 className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1">Biography</h3>
-            <p className="text-gray-300 text-sm leading-relaxed">
-              {freelancer.bio || "No biography provided by the freelancer yet."}
-            </p>
-          </div>
-
-          <div>
-            <h3 className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Core Technical Skills</h3>
-            <div className="flex flex-wrap gap-2">
-              {Array.isArray(freelancer.skills) && freelancer.skills.length > 0 ? (
-                freelancer.skills.map((skill, index) => (
-                  <span key={index} className="bg-white/5 border border-white/10 text-gray-300 text-xs px-3 py-1.5 rounded-xl">
-                    {skill}
-                  </span>
-                ))
-              ) : (
-                <span className="text-xs text-gray-500 italic">No specific skills listed.</span>
-              )}
-            </div>
-          </div>
-        </div>
-
+        <button
+          onClick={() => router.push("/dashboard/client")}
+          className="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold transition"
+        >
+          Back to Dashboard
+        </button>
       </div>
+
+      {bids.length === 0 ? (
+        <div className="bg-white/5 border border-white/10 p-8 rounded-2xl text-center text-gray-500 text-sm">
+          No freelancers have bid on this job yet.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {bids.map((bid) => (
+            <div key={bid._id} className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col justify-between gap-4 md:flex-row md:items-start">
+              
+              {/* বাম পাশের ডাটা পার্ট */}
+              <div className="flex-1 space-y-3">
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-emerald-400 font-bold text-sm">📩 {bid.freelancer_email}</span>
+                  <span className="text-gray-500 text-[10px] font-mono">
+                    {new Date(bid.submitted_at).toLocaleDateString()}
+                  </span>
+                </div>
+                
+                <div className="flex gap-4 text-sm">
+                  <div className="bg-white/[0.02] px-3 py-1.5 rounded-lg border border-white/5">
+                    <span className="text-xs text-gray-500">Budget:</span> <strong>${bid.proposed_budget}</strong>
+                  </div>
+                  <div className="bg-white/[0.02] px-3 py-1.5 rounded-lg border border-white/5">
+                    <span className="text-xs text-gray-500">Time:</span> <strong>{bid.estimated_days} Days</strong>
+                  </div>
+                  <div className="bg-white/[0.02] px-3 py-1.5 rounded-lg border border-white/5 uppercase text-[10px] font-black flex items-center tracking-wider">
+                    Status: <span className="ml-1 text-yellow-400">{bid.status || 'pending'}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase mb-1">Cover Note</p>
+                  <p className="text-sm text-gray-300 bg-black/20 p-3 rounded-xl border border-white/5 whitespace-pre-line leading-relaxed">
+                    {bid.cover_note}
+                  </p>
+                </div>
+              </div>
+
+              {/* 🚀 ডান পাশের অ্যাকশন বাটন পার্ট */}
+              <div className="md:mt-8 min-w-[160px] flex md:justify-end">
+                {bid.status === "accepted" ? (
+                  <button disabled className="w-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-black py-3 px-4 rounded-xl cursor-not-allowed uppercase tracking-wider">
+                    ✓ Accepted & Hired
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={payLoading !== null}
+                    onClick={() => handleAcceptAndPay(bid)}
+                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold py-3 px-4 rounded-xl transition duration-300 shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-1.5"
+                  >
+                    {payLoading === bid._id ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      "💳 Approve & Pay"
+                    )}
+                  </button>
+                )}
+              </div>
+
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

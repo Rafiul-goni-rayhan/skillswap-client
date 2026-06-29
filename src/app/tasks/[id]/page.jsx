@@ -14,7 +14,7 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
   
-  // 🎯 স্টেট প্রপার্টির নামগুলো অফিশিয়াল স্কিমার সাথে সিঙ্ক করা হলো
+  // 🎯 স্টেট প্রপার্টির নামগুলো অফিশিয়াল স্কিমার সাথে সিঙ্ক করা হলো
   const [bidForm, setBidForm] = useState({
     proposed_budget: "",
     estimated_days: "",
@@ -32,7 +32,7 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
     // টাস্ক ডিটেইলস ফেচ করা
     const fetchTaskDetails = async () => {
       try {
-        const response = await fetch(`https://skillswap-server-one.vercel.app/api/tasks/${taskId}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/tasks/${taskId}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -53,14 +53,15 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
     setBidForm({ ...bidForm, [e.target.name]: e.target.value });
   };
 
-  const handleBidSubmit = async (e) => {
+ const handleBidSubmit = async (e) => {
     e.preventDefault();
     setSubmitLoading(true);
     setMessage({ type: "", text: "" });
 
-    // 🎯 ডাটা টাইপ কনভার্সন এবং প্রপার্টি নেমিং ফিক্স (Section 13)
+    // 🎯 ফিক্সড পেলোড: সেশন টোকেন ছাড়াই ইউজারের ইমেইল সরাসরি পাঠানো হচ্ছে
     const proposalPayload = {
       task_id: taskId, 
+      freelancer_email: user?.email || "unknown@mail.com", // 👈 লোকালস্টোরেজের ইউজার ইমেইল পাস করা হলো
       proposed_budget: parseFloat(bidForm.proposed_budget) || 0,
       estimated_days: parseInt(bidForm.estimated_days) || 0,
       cover_note: bidForm.cover_note ? bidForm.cover_note.trim() : "",
@@ -74,15 +75,14 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
     }
 
     try {
-      const response = await fetch("https://skillswap-server-one.vercel.app/api/proposals", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/proposals`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify(proposalPayload), // সঠিক ডক কমপ্লায়েন্ট পেলোড পাঠানো হচ্ছে
-        credentials: "include",
+        body: JSON.stringify(proposalPayload), 
       });
-
+      
       const data = await response.json();
 
       if (!response.ok) {
@@ -92,12 +92,11 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
       setMessage({ type: "success", text: "Your proposal has been submitted successfully!" });
       setBidForm({ proposed_budget: "", estimated_days: "", cover_note: "" });
       
-      // টাস্ক কাউন্ট লোকালি আপডেট করে দেওয়া
       setTask((prev) => ({ ...prev, proposalsCount: (prev.proposalsCount || 0) + 1 }));
 
     } catch (err) {
       setMessage({ type: "error", text: err.message });
-    } finally { // <-- টাইপো ফিক্স করা হয়েছে (finally)
+    } finally {
       setSubmitLoading(false);
     }
   };
@@ -159,7 +158,7 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
 
         {/* ডান পাশ: বাজেট সামারি এবং বিডিং ফর্ম */}
         <div className="space-y-6">
-          {/* বাজেট ইনফো কার্ড */}
+          {/* বাজেট ইনফোカード */}
           <div className="bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-xl grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider">Budget</p>
@@ -203,7 +202,7 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
                   <label className="block text-sm font-medium mb-1 text-gray-300">Your Bid Amount ($)</label>
                   <input
                     type="number"
-                    name="proposed_budget" // 🎯 নাম আপডেট করা হয়েছে
+                    name="proposed_budget"
                     required
                     min="1"
                     value={bidForm.proposed_budget}
@@ -217,7 +216,7 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
                   <label className="block text-sm font-medium mb-1 text-gray-300">Delivery Duration (Days)</label>
                   <input
                     type="number"
-                    name="estimated_days" // 🎯 নাম আপডেট করা হয়েছে
+                    name="estimated_days"
                     required
                     min="1"
                     value={bidForm.estimated_days}
@@ -230,7 +229,7 @@ export default function TaskDetailsPage({ params: paramsPromise }) {
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-300">Cover Note Message</label>
                   <textarea
-                    name="cover_note" // 🎯 নাম আপডেট করা হয়েছে
+                    name="cover_note"
                     required
                     rows="5"
                     value={bidForm.cover_note}
