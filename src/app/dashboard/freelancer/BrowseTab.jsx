@@ -43,7 +43,7 @@ export default function BrowseTab({ tasks, myProposals, user, fetchFreelancerWor
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(proposalPayload),
-        credentials: "include",
+       
       });
 
       const resData = await response.json();

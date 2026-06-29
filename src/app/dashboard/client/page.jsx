@@ -20,7 +20,7 @@ function ClientDashboardContent() {
   const user = session?.user;
 
   const [proposals, setProposals] = useState([]);
-  const [dataLoading, setDataLoading] = useState(false); // ডেটা ফেচিং ট্র্যাকিংয়ের জন্য আলাদা স্টেট
+  const [dataLoading, setDataLoading] = useState(false); // ডেটা ফেচিং ট্র্যাকিংয়ের জন্য আলাদা স্টেট
   const [isPostFormOpen, setIsPostFormOpen] = useState(false);
 
   // ফর্ম ইনপুট স্টেটসমূহ
@@ -32,21 +32,17 @@ function ClientDashboardContent() {
   const [formSubmitting, setFormSubmitting] = useState(false);
 
   // ১. প্রোপোজাল ফেচ করার ফাংশন
-// ১. প্রোপোজাল ফেচ করার ফাংশন (ডিপেন্ডেন্সিতে সরাসরি user অবজেক্ট বা ইন্টারনাল প্রোপার্টি না রেখে ফাংশনকে ইন্ডিপেন্ডেন্ট রাখা হয়েছে)
-  const fetchClientProposals = useCallback(async (email) => {
+ const fetchClientProposals = useCallback(async (email) => {
     if (!email) return;
     
     setDataLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/client/proposals?client_email=${encodeURIComponent(email)}`,
-        {
-          credentials: "include",
-        },
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/client/proposals?email=${encodeURIComponent(email)}` // 🎯 ফিক্স: client_email বদলে সরাসরি email করা হলো ব্যাকএন্ডের সাথে মিলিয়ে
       );
       const data = await response.json();
-      if (response.ok) {
-        setProposals(data.data || data);
+      if (response.ok && data.success) {
+        setProposals(data.data || []);
       }
     } catch (err) {
       console.error("Error fetching client proposals:", err);
@@ -54,11 +50,9 @@ function ClientDashboardContent() {
     } finally {
       setDataLoading(false);
     }
-  }, []); // ডিপেন্ডেন্সি অ্যারে খালি রাখা হয়েছে যাতে ফাংশনটি রি-ক্রিয়েট না হয়
-
+  }, []);
   // ২. সেশন লোড হওয়া এবং ইউজার ডেটা কনফার্ম হওয়ার পর এপিআই কল করা
   useEffect(() => {
-    // সেশন পেন্ডিং না থাকলে এবং ইউজারের ইমেইল পাওয়া গেলে এপিআই কল হবে
     if (!isSessionLoading && user?.email) {
       fetchClientProposals(user.email);
     }
@@ -69,15 +63,21 @@ function ClientDashboardContent() {
     setIsPostFormOpen(action === "post");
   }, [action]);
 
-  const handlePostTask = async (e) => {
+ const handlePostTask = async (e) => {
     e.preventDefault();
-    if (!taskTitle.trim() || !budget || !deadline || !taskCategory) {
+    
+    if (!user?.email) {
+      toast.error("Session missing. Please log in again.");
+      return;
+    }
+
+    if (!taskTitle.trim() || !budget || !deadline || !taskCategory || !description.trim()) {
       toast.error("Please fill in all mandatory fields.");
       return;
     }
 
     const parsedBudget = parseFloat(budget);
-    const parsedDeadline = parseInt(deadline);
+    const parsedDeadline = parseInt(deadline); // যেমন: ৫ বা ১০ দিন
 
     if (isNaN(parsedBudget) || isNaN(parsedDeadline)) {
       toast.error("Please enter valid numbers for Budget and Deadline.");
@@ -95,16 +95,16 @@ function ClientDashboardContent() {
             title: taskTitle.trim(),
             category: taskCategory,
             budget: parsedBudget,
-            deadline: parsedDeadline,
-            description: description.trim() || "",
-            client_email: user?.email,
-            status: "open",
+            deadline: parsedDeadline, // ওরিজনাল নাম্বার পাস
+            description: description.trim(),
+            client_email: user.email.trim(), // 🎯 সরাসরি সেশন থেকে পাঠানো হলো
           }),
-          credentials: "include",
-        },
+        }
       );
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         toast.success("Task Vector Deployed Successfully!");
         setTaskTitle("");
         setTaskCategory("Development");
@@ -112,10 +112,9 @@ function ClientDashboardContent() {
         setDeadline("");
         setDescription("");
         router.push("/dashboard/client");
-        fetchClientProposals();
+        fetchClientProposals(user.email); 
       } else {
-        const errData = await response.json();
-        toast.error(errData.message || "Failed to post task.");
+        toast.error(data.message || "Failed to post task.");
       }
     } catch (err) {
       console.error("Task submission crash:", err);
@@ -170,7 +169,13 @@ function ClientDashboardContent() {
       return;
     }
 
+    if (!user?.email) {
+      toast.error("Active context session expired.");
+      return;
+    }
+
     try {
+      // 🎯 ফিক্স: হার্ডকোডেড ইউআরএল পরিবর্তন করে এনভায়রনমেন্ট ভেরিয়েবল বসানো হয়েছে
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_URL}/api/reviews`,
         {
@@ -180,7 +185,7 @@ function ClientDashboardContent() {
           },
           body: JSON.stringify({
             task_id: "",
-            reviewer_email: user?.email || "client@network.com",
+            reviewer_email: user.email,
             reviewee_email: freelancerEmail.trim(),
             rating: parseFloat(ratingValue),
             comment: "Decentralized task operation successfully evaluated.",
@@ -192,7 +197,7 @@ function ClientDashboardContent() {
 
       if (response.ok && resData.success) {
         toast.success("⭐ Review Node Deployed Successfully!");
-        fetchClientProposals();
+        fetchClientProposals(user.email); // 🎯 ফিক্স: সেশন ইমেইল পাস করা হলো রিফ্রেশের জন্য
       } else {
         toast.error(
           `❌ REJECT: ${resData.message || "Failed to secure rating node."}`,
@@ -204,7 +209,7 @@ function ClientDashboardContent() {
     }
   };
 
-  // মূল কন্ডিশন: সেশন লোড হওয়া পর্যন্ত বা সেশন ভেরিফাই হওয়া পর্যন্ত ফুল স্ক্রিন স্পিনার দেখাবে
+  // মূল কন্ডিশন: সেশন লোড হওয়া পর্যন্ত ফুল স্ক্রিন স্পিনার দেখাবে
   if (isSessionLoading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
@@ -256,7 +261,6 @@ function ClientDashboardContent() {
           router={router}
         />
       ) : dataLoading ? (
-        // টেবিল ডাটা লোড হওয়ার সময় ভেতরের স্পিনার
         <div className="flex justify-center py-10">
           <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
