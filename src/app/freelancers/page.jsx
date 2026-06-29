@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // 🚀 ১. রাউটার ইম্পোর্ট করা হয়েছে ভাই
+import { useRouter } from "next/navigation"; // 
 import toast from "react-hot-toast";
 
 export default function BrowseFreelancers() {
-  const router = useRouter(); // 🚀 ২. রাউটার হুক অ্যাক্টিভেট করা হয়েছে
+  const router = useRouter(); 
   const [freelancers, setFreelancers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -16,9 +16,9 @@ export default function BrowseFreelancers() {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const limit = 6; // 🎯 কনস্ট্রেইন: ডিফল্ট কুয়েরি অপারেশন লিমিট সর্বোচ্চ ৯টি
+  const limit = 6; // 
 
-  // 🎯 ডাটা ফেচ করার কোর ফাংশন
+
   const fetchFreelancers = async () => {
     try {
       setLoading(true);
